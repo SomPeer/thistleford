@@ -638,7 +638,6 @@ class StagePlan:
     merge_pick: bool = False  # after the draft pick: a critique of every draft, then one module merged from the best base and two others
     level_tilt: bool = False  # where the photo's outline calls for the 22-degree tilt, only flat objects get it; taller ones stay level
     tone: bool = False  # the finished module gets slightly more contrast and colour
-    forward: bool = False  # the finished object is moved to the front face of the unit cube
     judged_tilt: bool = False  # the finished module is offered at other tilts toward the cameras; the pose selector's clear favourite is kept
     outline_fit_last: bool = False
     post_pick_effort: str = "xhigh"  # effort of the rewrites of the final pick
@@ -1377,8 +1376,6 @@ class Pipeline:
                 source = self.judged_tilt(pool, source)
             if plan.tone:
                 source = self.toned(source)
-            if plan.forward:  # see final_stretch: forward does not survive the stretch's re-centring
-                source = self.pushed_forward(source)
             return final_stretch(source, plan.fill)
 
     def photo_tilted(self, source: str) -> str:
@@ -1429,18 +1426,6 @@ class Pipeline:
         turned = tone(source)
         if turned == source:
             return source
-        try:
-            self.renderer.render(turned, FRONT_JUDGE)
-        except RenderRejected:
-            return source
-        return turned
-
-    def pushed_forward(self, source: str) -> str:
-        """The finished object moved to the front face of the unit cube; as it is when the renderer refuses."""
-        at = source.rfind(_CENTERED)
-        if at < 0:
-            return source
-        turned = source[:at] + _FORWARD + source[at + len(_CENTERED):]
         try:
             self.renderer.render(turned, FRONT_JUDGE)
         except RenderRejected:
@@ -1692,8 +1677,6 @@ PATCH_FLOOR = 0.4  # the least a patch-edit reply is taken to cost, as a share o
 PATCH_PRIOR = 0.6  # that share before any patch-edit reply of this prompt has been seen
 MERGE_COST = (748, 11000)  # a round's merge call: reasoning tokens, and input tokens besides the two modules
 SELECT_EXTRA_CREDITS = 12000  # a third candidate in the round's two selection calls
-_CENTERED = "    root.position.set(-center.x * scale, -center.y * scale, -center.z * scale);\n"
-_FORWARD = "    root.position.set(-center.x * scale, -center.y * scale, -center.z * scale + Math.max(0, 0.4995 - size.z * scale / 2));\n"
 # Display-space tone on material colours, base-colour textures, vertex and instance colours, before the final fit.
 TONE_CALL = '__col404(THREE, root, {"cont":1.1,"vib":0.1,"bri":-0.015});'
 TONE_FUNCTION = r"""
